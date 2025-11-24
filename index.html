@@ -3,296 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Élection Présidentielle 2025 - Architecture Lambda</title>
+    <title>Élection Présidentielle 2025 - Architecture Lambda/Kappa</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-        }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } = Recharts;
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
-        const ElectionDashboard = () => {
-            const [currentTime, setCurrentTime] = useState(new Date());
-            const [speedResults, setSpeedResults] = useState({ candidatA: 0, candidatB: 0, candidatC: 0 });
-            const [batchResults, setBatchResults] = useState({ candidatA: 0, candidatB: 0, candidatC: 0 });
-            const [bureaux, setBureaux] = useState({ total: 1500, transmis: 0, valides: 0 });
-            const [events, setEvents] = useState([]);
-            const [isLive, setIsLive] = useState(true);
-            const [participationRate, setParticipationRate] = useState(0);
-            const [activeLayer, setActiveLayer] = useState('serving');
-            const [resultsHistory, setResultsHistory] = useState([]);
+const ElectionDashboard = () => {
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [speedResults, setSpeedResults] = useState({ candidatA:0, candidatB:0, candidatC:0 });
+    const [batchResults, setBatchResults] = useState({ candidatA:0, candidatB:0, candidatC:0 });
+    const [bureaux, setBureaux] = useState({ total:1500, transmis:0, valides:0 });
+    const [events, setEvents] = useState([]);
+    const [isLive, setIsLive] = useState(true);
+    const [activeLayer, setActiveLayer] = useState('serving');
 
-            useEffect(() => {
-                if (!isLive) return;
+    useEffect(() => {
+        if(!isLive) return;
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+            setBureaux(prevBureaux => {
+                const newBureaux = { ...prevBureaux };
+                const eventTypes = ['PV_TRANSMIS','PV_VALIDE'];
+                const randomEvent = eventTypes[Math.floor(Math.random()*eventTypes.length)];
 
-                const interval = setInterval(() => {
-                    setCurrentTime(new Date());
-                    
-                    const eventTypes = ['PV_TRANSMIS', 'PV_VALIDE'];
-                    const randomEvent = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                    const bureauId = Math.floor(Math.random() * 1500) + 1;
-                    
-                    if (randomEvent === 'PV_TRANSMIS' && bureaux.transmis < bureaux.total) {
-                        const votesA = Math.floor(Math.random() * 300) + 100;
-                        const votesB = Math.floor(Math.random() * 300) + 100;
-                        const votesC = Math.floor(Math.random() * 300) + 100;
-                        
-                        setSpeedResults(prev => ({
-                            candidatA: prev.candidatA + votesA,
-                            candidatB: prev.candidatB + votesB,
-                            candidatC: prev.candidatC + votesC
-                        }));
-                        
-                        setBureaux(prev => ({
-                            ...prev,
-                            transmis: Math.min(prev.transmis + 1, prev.total)
-                        }));
-                        
-                        const newEvent = {
-                            timestamp: new Date().toISOString(),
-                            type: 'PV_TRANSMIS',
-                            bureauId: `Bureau_${bureauId}`,
-                            layer: 'SPEED',
-                            data: { candidatA: votesA, candidatB: votesB, candidatC: votesC }
-                        };
-                        
-                        setEvents(prev => [newEvent, ...prev.slice(0, 14)]);
-                        
-                    } else if (randomEvent === 'PV_VALIDE' && bureaux.valides < bureaux.transmis) {
-                        const validatedVotesA = Math.floor(Math.random() * 300) + 100;
-                        const validatedVotesB = Math.floor(Math.random() * 300) + 100;
-                        const validatedVotesC = Math.floor(Math.random() * 300) + 100;
-                        
-                        setBatchResults(prev => ({
-                            candidatA: prev.candidatA + validatedVotesA,
-                            candidatB: prev.candidatB + validatedVotesB,
-                            candidatC: prev.candidatC + validatedVotesC
-                        }));
-                        
-                        setBureaux(prev => ({
-                            ...prev,
-                            valides: Math.min(prev.valides + 1, prev.transmis)
-                        }));
-                        
-                        const newEvent = {
-                            timestamp: new Date().toISOString(),
-                            type: 'PV_VALIDE',
-                            bureauId: `Bureau_${bureaux.valides}`,
-                            layer: 'BATCH',
-                            data: null
-                        };
-                        
-                        setEvents(prev => [newEvent, ...prev.slice(0, 14)]);
-                    }
-                    
-                    if (Math.random() > 0.5) {
-                        const totalSpeedVotes = speedResults.candidatA + speedResults.candidatB + speedResults.candidatC;
-                        const totalBatchVotes = batchResults.candidatA + batchResults.candidatB + batchResults.candidatC;
-                        
-                        setResultsHistory(prev => {
-                            const newHistory = [...prev, {
-                                time: new Date().toLocaleTimeString(),
-                                speed: totalSpeedVotes,
-                                batch: totalBatchVotes
-                            }];
-                            return newHistory.slice(-15);
-                        });
-                    }
-                    
-                    const totalVotes = speedResults.candidatA + speedResults.candidatB + speedResults.candidatC;
-                    const estimatedVoters = bureaux.total * 400;
-                    setParticipationRate(((totalVotes / estimatedVoters) * 100).toFixed(2));
-                    
-                }, 1500);
+                if(randomEvent==='PV_TRANSMIS' && prevBureaux.transmis<prevBureaux.total){
+                    const votesA=Math.floor(Math.random()*300)+100;
+                    const votesB=Math.floor(Math.random()*300)+100;
+                    const votesC=Math.floor(Math.random()*300)+100;
+                    setSpeedResults(prev=>({ candidatA:prev.candidatA+votesA, candidatB:prev.candidatB+votesB, candidatC:prev.candidatC+votesC }));
+                    newBureaux.transmis=Math.min(prevBureaux.transmis+1,prevBureaux.total);
+                    const newEvent = { timestamp:new Date().toISOString(), type:'PV_TRANSMIS', bureauId:`Bureau_${newBureaux.transmis}`, layer:'SPEED', data:{candidatA:votesA,candidatB:votesB,candidatC:votesC} };
+                    setEvents(prev=>[newEvent,...prev.slice(0,14)]);
+                } else if(randomEvent==='PV_VALIDE' && prevBureaux.valides<prevBureaux.transmis){
+                    const valA=Math.floor(Math.random()*300)+100;
+                    const valB=Math.floor(Math.random()*300)+100;
+                    const valC=Math.floor(Math.random()*300)+100;
+                    setBatchResults(prev=>({ candidatA:prev.candidatA+valA, candidatB:prev.candidatB+valB, candidatC:prev.candidatC+valC }));
+                    newBureaux.valides=Math.min(prevBureaux.valides+1,prevBureaux.transmis);
+                    const newEvent = { timestamp:new Date().toISOString(), type:'PV_VALIDE', bureauId:`Bureau_${newBureaux.valides}`, layer:'BATCH', data:null };
+                    setEvents(prev=>[newEvent,...prev.slice(0,14)]);
+                }
+                return newBureaux;
+            });
+        },1500);
+        return () => clearInterval(interval);
+    },[isLive]);
 
-                return () => clearInterval(interval);
-            }, [isLive, bureaux, speedResults, batchResults]);
+    const totalSpeedVotes = speedResults.candidatA + speedResults.candidatB + speedResults.candidatC;
+    const totalBatchVotes = batchResults.candidatA + batchResults.candidatB + batchResults.candidatC;
 
-            const totalSpeedVotes = speedResults.candidatA + speedResults.candidatB + speedResults.candidatC;
-            const totalBatchVotes = batchResults.candidatA + batchResults.candidatB + batchResults.candidatC;
-            
-            const getChartData = (layer) => {
-                const results = layer === 'speed' ? speedResults : batchResults;
-                const total = layer === 'speed' ? totalSpeedVotes : totalBatchVotes;
-                
-                return [
-                    { name: 'Candidat A', votes: results.candidatA, pourcentage: total > 0 ? ((results.candidatA / total) * 100).toFixed(2) : 0 },
-                    { name: 'Candidat B', votes: results.candidatB, pourcentage: total > 0 ? ((results.candidatB / total) * 100).toFixed(2) : 0 },
-                    { name: 'Candidat C', votes: results.candidatC, pourcentage: total > 0 ? ((results.candidatC / total) * 100).toFixed(2) : 0 }
-                ];
-            };
+    const getChartData=(layer)=>{
+        const results=layer==='speed'?speedResults:batchResults;
+        const total=layer==='speed'?totalSpeedVotes:totalBatchVotes;
+        return [
+            {name:'Candidat A',votes:results.candidatA,pourcentage:total>0?((results.candidatA/total)*100).toFixed(2):0},
+            {name:'Candidat B',votes:results.candidatB,pourcentage:total>0?((results.candidatB/total)*100).toFixed(2):0},
+            {name:'Candidat C',votes:results.candidatC,pourcentage:total>0?((results.candidatC/total)*100).toFixed(2):0}
+        ];
+    };
 
-            const speedChartData = getChartData('speed');
-            const batchChartData = getChartData('batch');
-            const servingChartData = bureaux.valides > bureaux.transmis * 0.8 ? batchChartData : speedChartData;
-            const COLORS = ['#3b82f6', '#ef4444', '#10b981'];
-            const progressPercent = ((bureaux.transmis / bureaux.total) * 100).toFixed(1);
+    const speedChartData = getChartData('speed');
+    const batchChartData = getChartData('batch');
+    const servingChartData = bureaux.valides > bureaux.transmis*0.8 ? batchChartData : speedChartData;
+    const COLORS = ['#3b82f6','#ef4444','#10b981'];
 
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h1 className="text-4xl font-bold mb-2">Élection Présidentielle 2025</h1>
-                                <p className="text-blue-300">Architecture Lambda + Kappa - Démonstration</p>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm text-blue-300">Dernière mise à jour</div>
-                                <div className="text-2xl font-mono">{currentTime.toLocaleTimeString()}</div>
-                                <button 
-                                    onClick={() => setIsLive(!isLive)}
-                                    className={`mt-2 px-4 py-2 rounded-lg font-semibold transition-colors ${isLive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-                                >
-                                    {isLive ? '⏸ Pause' : '▶ Reprendre'}
-                                </button>
-                            </div>
-                        </div>
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">Élection Présidentielle 2025</h1>
+                        <p className="text-blue-300">Architecture Lambda + Kappa - Démonstration</p>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-sm text-blue-300">Dernière mise à jour</div>
+                        <div className="text-2xl font-mono">{currentTime.toLocaleTimeString()}</div>
+                        <button onClick={()=>setIsLive(!isLive)} className={`mt-2 px-4 py-2 rounded-lg font-semibold transition-colors ${isLive?'bg-red-600 hover:bg-red-700':'bg-green-600 hover:bg-green-700'}`}>{isLive?'⏸ Pause':'▶ Reprendre'}</button>
+                    </div>
+                </div>
 
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold mb-4">Architecture Lambda - Couches</h2>
-                            <div className="grid grid-cols-3 gap-4">
-                                <button
-                                    onClick={() => setActiveLayer('speed')}
-                                    className={`p-6 rounded-lg border-2 transition-all ${
-                                        activeLayer === 'speed' 
-                                            ? 'bg-yellow-600/30 border-yellow-500 shadow-lg shadow-yellow-500/50' 
-                                            : 'bg-white/5 border-white/20 hover:bg-white/10'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-3xl">⚡</span>
-                                        <span className="text-xs bg-yellow-600 px-2 py-1 rounded">TEMPS RÉEL</span>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-2">Couche Speed</h3>
-                                    <p className="text-sm text-gray-300 mb-3">Streaming en temps réel</p>
-                                    <div className="text-2xl font-bold text-yellow-400">{totalSpeedVotes.toLocaleString()}</div>
-                                    <div className="text-xs text-gray-400">votes traités</div>
-                                </button>
+                {/* Lambda Layers */}
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                    {['speed','batch','serving'].map(layer=>{
+                        let label='',emoji='',bg='',count=0,textColor='';
+                        if(layer==='speed'){label='Couche Speed (Temps Réel)';emoji='⚡';bg='yellow';count=totalSpeedVotes;textColor='text-yellow-400';}
+                        if(layer==='batch'){label='Couche Batch (Validés)';emoji='💾';bg='green';count=totalBatchVotes;textColor='text-green-400';}
+                        if(layer==='serving'){label='Couche Serving (Public)';emoji='🌐';bg='blue';count=bureaux.valides>bureaux.transmis*0.8?'BATCH':'SPEED';textColor='text-blue-400';}
+                        return (
+                            <button key={layer} onClick={()=>setActiveLayer(layer)} className={`p-6 rounded-lg border-2 transition-all ${activeLayer===layer?`bg-${bg}-600/30 border-${bg}-500 shadow-lg shadow-${bg}-500/50`:'bg-white/5 border-white/20 hover:bg-white/10'}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-3xl">{emoji}</span>
+                                    <span className={`text-xs bg-${bg}-600 px-2 py-1 rounded`}>{layer==='speed'?'TEMPS RÉEL':layer==='batch'?'VALIDÉ':'PUBLIC'}</span>
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">{label}</h3>
+                                <div className={`text-2xl font-bold ${textColor}`}>{count.toLocaleString?count.toLocaleString():count}</div>
+                            </button>
+                        );
+                    })}
+                </div>
 
-                                <button
-                                    onClick={() => setActiveLayer('batch')}
-                                    className={`p-6 rounded-lg border-2 transition-all ${
-                                        activeLayer === 'batch' 
-                                            ? 'bg-green-600/30 border-green-500 shadow-lg shadow-green-500/50' 
-                                            : 'bg-white/5 border-white/20 hover:bg-white/10'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-3xl">💾</span>
-                                        <span className="text-xs bg-green-600 px-2 py-1 rounded">VALIDÉ</span>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-2">Couche Batch</h3>
-                                    <p className="text-sm text-gray-300 mb-3">Traitement complet</p>
-                                    <div className="text-2xl font-bold text-green-400">{totalBatchVotes.toLocaleString()}</div>
-                                    <div className="text-xs text-gray-400">votes validés</div>
-                                </button>
+                {/* Chart */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20 mb-6">
+                    <h2 className="text-2xl font-bold mb-4">
+                        {activeLayer==='speed'?'⚡ Résultats Couche Speed':activeLayer==='batch'?'✅ Résultats Couche Batch':'🌐 Résultats Couche Serving'}
+                    </h2>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={activeLayer==='speed'?speedChartData:activeLayer==='batch'?batchChartData:servingChartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                            <XAxis dataKey="name" stroke="#94a3b8" />
+                            <YAxis stroke="#94a3b8" />
+                            <Tooltip contentStyle={{backgroundColor:'#1e293b',border:'1px solid #475569'}}/>
+                            <Bar dataKey="votes" fill={activeLayer==='speed'?'#eab308':activeLayer==='batch'?'#10b981':'#3b82f6'}/>
+                        </BarChart>
+                    </ResponsiveContainer>
 
-                                <button
-                                    onClick={() => setActiveLayer('serving')}
-                                    className={`p-6 rounded-lg border-2 transition-all ${
-                                        activeLayer === 'serving' 
-                                            ? 'bg-blue-600/30 border-blue-500 shadow-lg shadow-blue-500/50' 
-                                            : 'bg-white/5 border-white/20 hover:bg-white/10'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-3xl">🌐</span>
-                                        <span className="text-xs bg-blue-600 px-2 py-1 rounded">PUBLIC</span>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-2">Couche Serving</h3>
-                                    <p className="text-sm text-gray-300 mb-3">Vue unifiée</p>
-                                    <div className="text-2xl font-bold text-blue-400">
-                                        {bureaux.valides > bureaux.transmis * 0.8 ? 'BATCH' : 'SPEED'}
-                                    </div>
-                                    <div className="text-xs text-gray-400">source active</div>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20 mb-6">
-                            <h2 className="text-2xl font-bold mb-4">
-                                {activeLayer === 'speed' && '⚡ Résultats Couche Speed (Temps Réel)'}
-                                {activeLayer === 'batch' && '✅ Résultats Couche Batch (Validés)'}
-                                {activeLayer === 'serving' && '🌐 Résultats Couche Serving (Public)'}
-                            </h2>
-                            
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={activeLayer === 'speed' ? speedChartData : activeLayer === 'batch' ? batchChartData : servingChartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                    <XAxis dataKey="name" stroke="#94a3b8" />
-                                    <YAxis stroke="#94a3b8" />
-                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
-                                    <Bar dataKey="votes" fill={activeLayer === 'speed' ? '#eab308' : activeLayer === 'batch' : '#10b981' : '#3b82f6'} />
-                                </BarChart>
-                            </ResponsiveContainer>
-
-                            <div className="mt-4 space-y-3">
-                                {(activeLayer === 'speed' ? speedChartData : activeLayer === 'batch' ? batchChartData : servingChartData).map((item, idx) => (
-                                    <div key={idx} className="bg-slate-800/50 p-4 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-lg">{item.name}</span>
-                                            <span className="text-2xl font-bold" style={{ color: COLORS[idx] }}>
-                                                {item.pourcentage}%
-                                            </span>
+                    {/* Events log Kappa */}
+                    <div className="mt-6">
+                        <h2 className="text-xl font-bold mb-2">🔐 Log Immuable des Événements (Architecture Kappa)</h2>
+                        <div className="space-y-2 font-mono text-sm max-h-64 overflow-y-auto">
+                            {events.length===0?<div className="text-gray-400 text-center py-4">En attente d'événements...</div>:events.map((ev,i)=>(
+                                <div key={i} className={`bg-slate-800/50 p-3 rounded border-l-4 ${ev.layer==='SPEED'?'border-yellow-500':'border-green-500'}`}>
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <span className="text-blue-400">{ev.timestamp}</span>
+                                            <span className="mx-2">|</span>
+                                            <span className={ev.layer==='SPEED'?'text-yellow-400':'text-green-400'}>{ev.type} [{ev.layer}]</span>
+                                            <span className="mx-2">|</span>
+                                            <span className="text-purple-400">{ev.bureauId}</span>
                                         </div>
-                                        <div className="text-sm text-gray-400 mt-1">
-                                            {item.votes.toLocaleString()} votes
-                                        </div>
+                                        {ev.data && <div className="text-xs text-gray-400">A:{ev.data.candidatA} B:{ev.data.candidatB} C:{ev.data.candidatC}</div>}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
-                            <h2 className="text-xl font-bold mb-4">🔐 Log Immuable des Événements (Architecture Kappa)</h2>
-                            <div className="space-y-2 font-mono text-sm max-h-64 overflow-y-auto">
-                                {events.length === 0 ? (
-                                    <div className="text-gray-400 text-center py-4">En attente d'événements...</div>
-                                ) : (
-                                    events.map((event, idx) => (
-                                        <div key={idx} className={`bg-slate-800/50 p-3 rounded border-l-4 ${
-                                            event.layer === 'SPEED' ? 'border-yellow-500' : 'border-green-500'
-                                        }`}>
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <span className="text-blue-400">{event.timestamp}</span>
-                                                    <span className="mx-2">|</span>
-                                                    <span className={event.layer === 'SPEED' ? 'text-yellow-400' : 'text-green-400'}>
-                                                        {event.type} [{event.layer}]
-                                                    </span>
-                                                    <span className="mx-2">|</span>
-                                                    <span className="text-purple-400">{event.bureauId}</span>
-                                                </div>
-                                                {event.data && (
-                                                    <div className="text-xs text-gray-400">
-                                                        A:{event.data.candidatA} B:{event.data.candidatB} C:{event.data.candidatC}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
-            );
-        };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<ElectionDashboard />);
-    </script>
+            </div>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ElectionDashboard />);
+</script>
 </body>
 </html>
